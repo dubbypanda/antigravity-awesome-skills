@@ -50,7 +50,7 @@ jobs:
 
   manual-review-required:
     needs: review-state
-    if: ${{ needs.review-state.outputs.configured != 'true' && github.event.pull_request.head.repo.full_name != github.repository }}
+    if: ${{ needs.review-state.outputs.configured != 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,21 +58,18 @@ jobs:
       - name: Record exact head requiring maintainer review
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPOSITORY: ${{ github.repository }}
         run: |
-          echo "::warning title=Manual skill review required::Semantic review is unavailable for this fork. A maintainer must attest to the exact head SHA before merge: ${HEAD_SHA}."
+          if [ "$HEAD_REPOSITORY" = "$BASE_REPOSITORY" ]; then
+            reason="semantic review credentials are not configured for this repository"
+          else
+            reason="repository secrets are unavailable to this fork pull request"
+          fi
+          echo "::warning title=Manual skill review required::${reason}. A maintainer must attest to the exact head SHA before merge: ${HEAD_SHA}."
           {
             echo "## Manual skill review required"
             echo
             echo "- Head SHA: \`${HEAD_SHA}\`"
-            echo "- Reason: repository secrets are unavailable to this fork pull request."
+            echo "- Reason: ${reason}."
           } >> "$GITHUB_STEP_SUMMARY"
-
-  missing-review-credentials:
-    needs: review-state
-    if: ${{ needs.review-state.outputs.configured != 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require Tessl token for repository branches
-        run: |
-          echo "::error title=Missing Tessl token::Configure TESSL_TOKEN, or keep the legacy TESSL_API_TOKEN secret until the migration is complete."
-          exit 1

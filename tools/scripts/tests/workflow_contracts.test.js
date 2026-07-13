@@ -121,7 +121,8 @@ const skillReviewWorkflow = fs.readFileSync(
 );
 assert.match(skillReviewWorkflow, /^  review:$/m);
 assert.match(skillReviewWorkflow, /^  manual-review-required:$/m);
-assert.match(skillReviewWorkflow, /^  missing-review-credentials:$/m);
+assert.doesNotMatch(skillReviewWorkflow, /^  missing-review-credentials:$/m);
+assert.match(skillReviewWorkflow, /if: \$\{\{ needs\.review-state\.outputs\.configured != 'true' \}\}/);
 assert.match(skillReviewWorkflow, /ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
 assert.ok(
   skillReviewWorkflow.indexOf("- name: Checkout pull request content") <
